@@ -44,7 +44,6 @@ class IconCreator {
         case .desktopNumbersAndRects:
             icons = createRectWithNumbersIcons(icons, spaces, desktopsOnly: true)
         case .text:
-            iconSize.width = 49
             icons = createNamedIcons(icons, spaces)
         default:
             break
@@ -119,12 +118,15 @@ class IconCreator {
     private func createNamedIcons(_ icons: [NSImage], _ spaces: [Space]) -> [NSImage] {
         var index = 0
         var newIcons = [NSImage]()
+        let horizontalPadding = CGFloat(12)
 
         for space in spaces {
-            let textRect = NSRect(origin: CGPoint.zero, size: iconSize)
             let spaceText = NSString(string: "\(space.spaceNumber): \(space.spaceName.uppercased())")
-            let iconImage = NSImage(size: iconSize)
-            let textImage = NSImage(size: iconSize)
+            let textSize = spaceText.size(withAttributes: getStringAttributes(alpha: 1))
+            let spaceIconSize = NSSize(width: max(iconSize.width, textSize.width + horizontalPadding), height: iconSize.height)
+            let textRect = NSRect(origin: CGPoint.zero, size: spaceIconSize)
+            let iconImage = NSImage(size: spaceIconSize)
+            let textImage = NSImage(size: spaceIconSize)
 
             textImage.lockFocus()
             spaceText.drawVerticallyCentered(
@@ -178,7 +180,7 @@ class IconCreator {
 
     func mergeIcons(_ iconsWithDisplayProperties: [(image: NSImage, nextSpaceOnDifferentDisplay: Bool)]) -> NSImage {
         let numIcons = iconsWithDisplayProperties.count
-        let combinedIconWidth = CGFloat(numIcons) * iconSize.width
+        let combinedIconWidth = iconsWithDisplayProperties.reduce(CGFloat.zero) { $0 + $1.image.size.width }
         let accomodatingGapWidth = CGFloat(numIcons - 1) * gapWidth
         let accomodatingDisplayGapWidth = CGFloat(displayCount - 1) * displayGapWidth
         let totalWidth = combinedIconWidth + accomodatingGapWidth + accomodatingDisplayGapWidth
@@ -193,9 +195,9 @@ class IconCreator {
                 operation: NSCompositingOperation.sourceOver,
                 fraction: 1.0)
             if icon.nextSpaceOnDifferentDisplay {
-                xOffset += iconSize.width + displayGapWidth
+                xOffset += icon.image.size.width + displayGapWidth
             } else {
-                xOffset += iconSize.width + gapWidth
+                xOffset += icon.image.size.width + gapWidth
             }
         }
         image.isTemplate = true
